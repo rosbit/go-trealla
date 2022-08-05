@@ -1,6 +1,6 @@
 # An embeddable Prolog
 
-[trealla](https://github.com/trealla-prolog/trealla) is A compact, efficient Prolog interpreter written in plain-old C.
+[trealla-prolog](https://github.com/trealla-prolog/trealla) is a compact, efficient Prolog interpreter written in C.
 
 This package is intended to provide a wrapper to interact `trealla` with application written in golang.
 With some helper functions, `go-trealla` makes it simple to calle Prolog from Golang, and `go-trallea` can be
@@ -25,7 +25,7 @@ import (
 )
 
 func main() {
-  ctx, err := trealla.NewTrealla("/path/to/trealla/exe")
+  ctx, err := trealla.NewTrealla("/path/to/trealla/exe") // linux executable trealla-prolog(tpl) can be downloaded from releases.
   if err != nil {
       // error processing
   }
@@ -60,15 +60,28 @@ one can load the script like this:
 ```go
    // query Who listens to Music
    args := []interface{}{trealla.PlVar("Who"), trealla.PlVar("Music")}
+   // res #1: map[string]interface {}{"Music":"bach", "Who":"ergou"}
+   // res #2: map[string]interface {}{"Music":"beethoven", "Who":"ergou"}
+   // res #3: map[string]interface {}{"Music":"mozart", "Who":"ergou"}
+   // res #4: map[string]interface {}{"Music":"mj", "Who":"xiaohong"}
+   // res #5: map[string]interface {}{"Music":"dylan", "Who":"xiaohong"}
+   // res #6: map[string]interface {}{"Music":"bach", "Who":"xiaohong"}
+   // res #7: map[string]interface {}{"Music":"beethoven", "Who":"xiaohong"}
 
    // query Who listens to "bach"
    args := []interface{}{trealla.PlVar("Who"), "bach"}
+   // res #1: map[string]interface {}{"Who":"ergou"}
+   // res #2: map[string]interface {}{"Who":"xiaohong"}
 
    // query Which Music "ergou" listens to
    args := []interface{}{"ergou", trealla.PlVar("Music")}
+   // res #1: map[string]interface {}{"Music":"bach"}
+   // res #2: map[string]interface {}{"Music":"beethoven"}
+   // res #3: map[string]interface {}{"Music":"mozart"}
 
    // check whether "ergou" listens to "bach"
    args := []interface{}{"ergou", "bach"}
+   // true
 ```
 
 #### 4. Query the goal with arguments and variables
