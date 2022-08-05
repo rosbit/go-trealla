@@ -1,10 +1,10 @@
 # An embeddable Prolog
 
-[trealla](github.com/trealla-prolog/trealla) is A compact, efficient Prolog interpreter written in plain-old C.
+[trealla](https://github.com/trealla-prolog/trealla) is A compact, efficient Prolog interpreter written in plain-old C.
 
 This package is intended to provide a wrapper to interact `trealla` with application written in golang.
 With some helper functions, `go-trealla` makes it simple to calle Prolog from Golang, and `go-trallea` can be
-treated as an embedable Prolog.
+treated as an embeddable Prolog.
 
 ### Usage
 
@@ -104,7 +104,7 @@ one can load the script like this:
    }
 ```
 
-The full usage sample can be found [sample/main.go](https://github.com/rosbit/go-trealla/blob/master/sample/main.go).
+The full usage sample can be found [sample/main.go](sample/main.go).
 
 ### Status
 
