@@ -52,7 +52,7 @@ type Trealla struct {
 }
 
 func NewTrealla(treallaExePath string) (*Trealla, error) {
-	e, err := expect.Spawn(treallaExePath)
+	e, err := spawn(treallaExePath)
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +60,9 @@ func NewTrealla(treallaExePath string) (*Trealla, error) {
 
 	for i:=0; i<2; i++ {
 		if _, err := e.ExpectRegexp(promptRE); err != nil {
+			if err == expect.NotFound || err == expect.TimedOut {
+				continue
+			}
 			e.Close()
 			return nil, err
 		}
@@ -152,7 +155,7 @@ func (t *Trealla) Query(predict string, args ...interface{}) (it <-chan map[stri
 			err = fmt.Errorf("%v", r)
 			return
 		}
-    }()
+	}()
 
 	goal, e := makeGoal(predict, args...)
 	if e != nil {
