@@ -142,11 +142,10 @@ func (t *Trealla) doQuery(goal string) (it <-chan map[string]interface{}, ok boo
 
 	res := make(chan map[string]interface{})
 	it = res
-
 	statusDone := make(chan struct{})
-	hasStatus := false
 
 	go func() {
+		hasStatus := false
 		for {
 			_, _, e := t.e.ExpectCases(
 				&expect.Case{Exp: promptRE, MatchedOnly: true, ExpMatched: func(_ []byte) expect.Action{
@@ -209,9 +208,6 @@ func (t *Trealla) doQuery(goal string) (it <-chan map[string]interface{}, ok boo
 			break
 		}
 
-		if !hasStatus {
-			close(statusDone)
-		}
 		close(res)
 	}()
 
