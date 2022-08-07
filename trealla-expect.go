@@ -25,26 +25,6 @@ var (
 	consultRE  = regexp.MustCompile("^\\[[^\\]]+\\]\\.[\r\n]")      // ['filename.pl'].
 	goalRE     = regexp.MustCompile(`^[a-z][^\(]*\(.*?\)\.[\r\n]`)  // goal(xxx,xxx).
 	msgRE      = regexp.MustCompile(`^.*?[\r\n]`)
-
-	consultCases = []*expect.Case{
-		&expect.Case{Exp: promptRE, MatchedOnly: true},
-		&expect.Case{Exp: trueRE},
-		&expect.Case{Exp: errRE},
-		&expect.Case{Exp: consultRE, SkipTill: '\n'},
-		&expect.Case{Exp: goalRE, SkipTill: '\n'},
-	}
-
-	goalCases = []*expect.Case{
-		&expect.Case{Exp: promptRE, MatchedOnly: true},
-		&expect.Case{Exp: wantMoreRE, MatchedOnly: true},
-		&expect.Case{Exp: falseRE},
-		&expect.Case{Exp: trueRE},
-		&expect.Case{Exp: errRE},
-		&expect.Case{Exp: resultRE},
-		&expect.Case{Exp: goalRE, SkipTill: '\n'},
-		&expect.Case{Exp: consultRE, SkipTill: '\n'},
-		&expect.Case{Exp: msgRE},
-	}
 )
 
 type Trealla struct {
@@ -81,64 +61,29 @@ func closeTrealla(t *Trealla) {
 
 func (t *Trealla) LoadFile(plFile string) (err error) {
 	t.e.Send(fmt.Sprintf("['%s'].\n", plFile))  // ['prolog-file-name'].
-CHECK:
-	idx, m, e := t.e.ExpectCases(consultCases...)
-	if e != nil {
-		// timeout
-		if e == expect.TimedOut || e == expect.NotFound {
-			goto CHECK
+	for {
+		_, _, e := t.e.ExpectCases(
+			&expect.Case{Exp: promptRE, MatchedOnly: true, ExpMatched: func(_ []byte) expect.Action{
+				return expect.Break
+			}},
+			&expect.Case{Exp: trueRE, SkipTill: '\n'},
+			&expect.Case{Exp: errRE, ExpMatched: func(m []byte) expect.Action{
+				err = fmt.Errorf("%s", extractError(m))
+				return expect.Continue
+			}},
+			&expect.Case{Exp: consultRE, SkipTill: '\n'},
+		)
+		if e != nil {
+			// timeout
+			if e == expect.TimedOut || e == expect.NotFound {
+				continue
+			}
+			err = e
 		}
-		err = e
-		return
-	}
-
-	switch idx {
-	case 0:
-		//?-
-		return
-	case 1:
-		// true.
-	case 2:
-		// error occurred
-		err = fmt.Errorf("%s", m)
-		return
-	case 3:
-		// [consult].
-		res, _ := extractConsultResult(m)
-		if len(res) == 0 {
-			goto CHECK
-		}
-
-		if strings.HasPrefix(res, " true.") {
-			break
-		}
-	default:
-		err = fmt.Errorf("idx: %d", idx)
-		return
-	}
-
-	if !bytes.HasSuffix(m, []byte("?- ")) {
-		_, err = t.e.ExpectRegexp(promptRE)
+		break
 	}
 
 	return
-}
-
-func extractConsultResult(m []byte) (string, string) {
-	pos := bytes.IndexByte(m, '\n')
-	if pos < 0 {
-		return "", ""
-	}
-	m = m[pos+1:]
-	if len(m) == 0 {
-		return "", ""
-	}
-	pos = bytes.IndexByte(m, '\n')
-	if pos >= 0 {
-		pos += 1
-		return string(m[:pos]), string(m[pos:])
-	}
-	return string(m), ""
 }
 
 func (t *Trealla) Query(predict string, args ...interface{}) (it <-chan map[string]interface{}, ok bool, err error) {
@@ -203,96 +148,65 @@ func (t *Trealla) doQuery(goal string) (it <-chan map[string]interface{}, ok boo
 
 	go func() {
 		for {
-			idx, m, e := t.e.ExpectCases(goalCases...)
+			_, _, e := t.e.ExpectCases(
+				&expect.Case{Exp: promptRE, MatchedOnly: true, ExpMatched: func(_ []byte) expect.Action{
+					if !hasStatus {
+						hasStatus = true
+						close(statusDone)
+					}
+					return expect.Break
+				}},
+				&expect.Case{Exp: wantMoreRE, MatchedOnly: true, ExpMatched: func(_ []byte) expect.Action{
+					t.e.Send(";")
+					return expect.Continue
+				}},
+				&expect.Case{Exp: falseRE, ExpMatched: func(_ []byte) expect.Action{
+					ok = false
+					it = nil
+					return expect.Continue
+				}},
+				&expect.Case{Exp: trueRE, ExpMatched: func(_ []byte) expect.Action{
+					ok = true
+					it = nil
+					return expect.Continue
+				}},
+				&expect.Case{Exp: errRE, ExpMatched: func(m []byte) expect.Action{
+					ok = false
+					err = fmt.Errorf("%s", extractError(m))
+					it = nil
+					return expect.Continue
+				}},
+				&expect.Case{Exp: resultRE, ExpMatched: func(m []byte) expect.Action{
+					if !hasStatus {
+						hasStatus = true
+						ok = true
+						close(statusDone)
+					}
+					if kv := extractVars(m); len(kv) > 0 {
+						res <- kv
+					}
+					return expect.Continue
+				}},
+				&expect.Case{Exp: goalRE, SkipTill: '\n'},
+				&expect.Case{Exp: consultRE, SkipTill: '\n'},
+				&expect.Case{Exp: msgRE, ExpMatched: func(m []byte) expect.Action{
+					fmt.Printf("%s", m)
+					return expect.Continue
+				}},
+			)
+
 			if e != nil {
 				if e == expect.TimedOut || e == expect.NotFound {
 					continue
 				}
-				if !hasStatus {
-					err = e
-					hasStatus = true
-					close(statusDone)
-				}
-				break
-			}
-
-			if idx == 0 {
-				// prompt
-				if !hasStatus {
-					hasStatus = true
-					close(statusDone)
-				}
-				break
-			}
-
-			switch idx {
-			case 5:
-				// result Var1 = val1[, Var2 = val2]...
-				if !hasStatus {
-					hasStatus = true
-					ok = true
-					close(statusDone)
-				}
-				if kv := extractVars(m); len(kv) > 0 {
-					res <- kv
-				}
-				if bytes.HasSuffix(m, []byte(";")) {
-					t.e.Send(";")
-					continue
-				}
-			case 1:
-				//;
-				t.e.Send(";")
-			case 2:
-				// false.
-				ok = false
-				it = nil
-			case 3:
-				// true.
-				ok = true
-				it = nil
-			case 4:
-				// error(xxx).
-				ok = false
-				err = fmt.Errorf("%s", extractError(m))
-				it = nil
-			case 8:
-				// msg
-				// fmt.Printf(">>>msg: %s<<<\n", m)
-				realMsg, maybeResult, prompt := extractMessage(m)
-				fmt.Printf("%s", realMsg)
-				if len(prompt) == 0 && len(maybeResult) == 0 {
-					continue
-				}
-				// fmt.Printf(">>maybeResult: %s, prompt: %s<<<\n", maybeResult, prompt)
-				switch {
-				case strings.HasPrefix(maybeResult, " true."):
-					ok = true
-					it = nil
-				case strings.HasPrefix(maybeResult, " false."):
-					ok = false
-					it = nil
-				case prompt == ";":
-					t.e.Send(";")
-					fallthrough
-				default:
-					if len(maybeResult) > 0 {
-						fmt.Printf("%s", maybeResult)
-					}
-					continue
-				}
-			default:
-				// TimedOut or NotFound
-				continue
 			}
 
 			if !hasStatus {
+				err = e
 				hasStatus = true
 				close(statusDone)
 			}
-			if bytes.HasSuffix(m, []byte("?- ")) {
-				break
-			}
+			break
 		}
 
 		if !hasStatus {
@@ -311,24 +225,6 @@ func extractError(m []byte) string {
 		return string(bytes.TrimSpace(m[:pos]))
 	}
 	return string(bytes.TrimSpace(m))
-}
-
-func extractMessage(m []byte) (string, string, string) {
-	pos := bytes.LastIndexByte(m, '\n')
-	if pos >= 0 {
-		pos += 1
-		msg, lastMsg := string(m[:pos]), string(m[pos:])
-		if len(lastMsg) > 0 && !strings.HasPrefix(lastMsg, "?- ") && lastMsg != ";" {
-			return msg, lastMsg, ""
-		}
-		pos = strings.LastIndexByte(msg[:len(msg)-1], '\n')
-		if pos >= 0 {
-			pos += 1
-			return msg[:pos], msg[pos:], lastMsg
-		}
-		return msg, "", lastMsg
-	}
-	return string(m), "", ""
 }
 
 func extractVars(m []byte) map[string]interface{} {
