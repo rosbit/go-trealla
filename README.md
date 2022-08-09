@@ -106,7 +106,7 @@ one can load the script like this:
    }
 
    // proving checking with result `true`
-   if rs == nil {
+   if solutions == nil {
       // the result is true
       return
    }
