@@ -60,24 +60,24 @@ one can load the script like this:
 ```go
    // query Who listens to Music
    args := []interface{}{trealla.PlVar("Who"), trealla.PlVar("Music")}
-   // res #1: map[string]interface {}{"Music":"bach", "Who":"ergou"}
-   // res #2: map[string]interface {}{"Music":"beethoven", "Who":"ergou"}
-   // res #3: map[string]interface {}{"Music":"mozart", "Who":"ergou"}
-   // res #4: map[string]interface {}{"Music":"mj", "Who":"xiaohong"}
-   // res #5: map[string]interface {}{"Music":"dylan", "Who":"xiaohong"}
-   // res #6: map[string]interface {}{"Music":"bach", "Who":"xiaohong"}
-   // res #7: map[string]interface {}{"Music":"beethoven", "Who":"xiaohong"}
+   // solution #1: map[string]interface {}{"Music":"bach", "Who":"ergou"}
+   // solution #2: map[string]interface {}{"Music":"beethoven", "Who":"ergou"}
+   // solution #3: map[string]interface {}{"Music":"mozart", "Who":"ergou"}
+   // solution #4: map[string]interface {}{"Music":"mj", "Who":"xiaohong"}
+   // solution #5: map[string]interface {}{"Music":"dylan", "Who":"xiaohong"}
+   // solution #6: map[string]interface {}{"Music":"bach", "Who":"xiaohong"}
+   // solution #7: map[string]interface {}{"Music":"beethoven", "Who":"xiaohong"}
 
    // query Who listens to "bach"
    args := []interface{}{trealla.PlVar("Who"), "bach"}
-   // res #1: map[string]interface {}{"Who":"ergou"}
-   // res #2: map[string]interface {}{"Who":"xiaohong"}
+   // solution #1: map[string]interface {}{"Who":"ergou"}
+   // solution #2: map[string]interface {}{"Who":"xiaohong"}
 
    // query Which Music "ergou" listens to
    args := []interface{}{"ergou", trealla.PlVar("Music")}
-   // res #1: map[string]interface {}{"Music":"bach"}
-   // res #2: map[string]interface {}{"Music":"beethoven"}
-   // res #3: map[string]interface {}{"Music":"mozart"}
+   // solution #1: map[string]interface {}{"Music":"bach"}
+   // solution #2: map[string]interface {}{"Music":"beethoven"}
+   // solution #3: map[string]interface {}{"Music":"mozart"}
 
    // check whether "ergou" listens to "bach"
    args := []interface{}{"ergou", "bach"}
@@ -87,7 +87,7 @@ one can load the script like this:
 #### 4. Query the goal with arguments and variables
 
 ```go
-   rs, ok, err := ctx.Query("listen", args...)
+   solutions, ok, err := ctx.Query("listen", args...)
 ```
 
 #### 5. Check the result
@@ -111,9 +111,9 @@ one can load the script like this:
       return
    }
 
-   // result set processing
-   for res := range rs {
-      fmt.Printf("res: %#v\n", res)
+   // solutions processing
+   for sol := range solutions {
+      fmt.Printf("solution: %#v\n", sol)
    }
 ```
 
