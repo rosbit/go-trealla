@@ -19,6 +19,7 @@ func main() {
 		fmt.Printf("%v\n", err)
 		return
 	}
+	defer ctx.Quit()
 	// fmt.Printf("init ok\n")
 
 	plFile, predict := os.Args[2], os.Args[3]

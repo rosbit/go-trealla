@@ -55,8 +55,16 @@ func NewTrealla(treallaExePath string) (*Trealla, error) {
 }
 
 func closeTrealla(t *Trealla) {
+	t.Quit()
+}
+
+func (t *Trealla) Quit() {
+	if t.e == nil {
+		return
+	}
 	t.e.Send("halt.\n")
 	t.e.Close()
+	t.e = nil
 }
 
 func (t *Trealla) LoadFile(plFile string) (err error) {
