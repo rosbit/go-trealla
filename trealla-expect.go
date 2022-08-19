@@ -24,6 +24,7 @@ var (
 	resultRE   = regexp.MustCompile(`^\s+[A-Z_][^ ]* = [^ ]+?([^\r\n])*[\r\n]`)  // Var1 = val1[, Var2 = val2]...    result with vars bound
 	consultRE  = regexp.MustCompile("^\\[[^\\]]+\\]\\.[\r\n]")      // ['filename.pl'].
 	goalRE     = regexp.MustCompile(`^[a-z][^\(]*\(.*?\)\.[\r\n]`)  // goal(xxx,xxx).
+	blankRE    = regexp.MustCompile(`^[\r\n]`)
 	msgRE      = regexp.MustCompile(`^.*?[\r\n]`)
 )
 
@@ -183,6 +184,7 @@ func (t *Trealla) doQuery(goal string) (it <-chan map[string]interface{}, ok boo
 					it = nil
 					return expect.Continue
 				}},
+				&expect.Case{Exp: blankRE, SkipTill: '\n'},
 				&expect.Case{Exp: resultRE, ExpMatched: func(m []byte) expect.Action{
 					if !hasStatus {
 						hasStatus = true
